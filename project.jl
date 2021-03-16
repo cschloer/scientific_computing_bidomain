@@ -163,7 +163,7 @@ for i=1:num_nodes(grid)
 	# We solved f(u, v) = 0 and g(u, v) = 0 with our parameters to get
 	# u = -1.28791, v = -0.57582
 	# u_e = 0 as specified in the paper		
-	# TODO solve the equations programmatically here
+	# TODO solve the equations programmatically here based on parameters
 
 	# We set the initial value to 2 if within the first 1/20th of the grid, as specified by the paper	
 	
