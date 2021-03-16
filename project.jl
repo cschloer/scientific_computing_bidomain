@@ -36,7 +36,7 @@ md"""
 ## 1.0 Problem Overview
 
 
-Equations for the Bidomain problem, a two species problem
+Equations for the Bidomain problem, a three species problem
 
 
 $\frac{\partial u}{\partial t} = \frac{1}{\epsilon} f(u ,v) +  \nabla\cdot (\sigma_{i} \nabla u) + \nabla\cdot (\sigma_{i} \nabla u_{e})\;$
