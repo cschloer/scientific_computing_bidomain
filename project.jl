@@ -33,7 +33,7 @@ md"""
 
 # ╔═╡ 397c9290-76f5-11eb-1114-4bd31f7ecf9a
 md"""
-## 1.1 Implementation
+## 1.0 Problem Overview
 
 
 Equations for the Bidomain problem, a two species problem
@@ -51,10 +51,18 @@ $f(u, v)= u−\frac{u^{3}}{3}−v\;$
 
 $g(u, v)= u + \beta - \gamma v \;$
 
-$
 
 
 """
+
+# ╔═╡ 90328ff6-8643-11eb-0f55-314c878ba3ec
+md"""
+## 1.1 Implementation
+
+We define evolution and create_grid similar to the lecture, though the grid now goes to 70 instead of 1.
+
+"""
+
 
 # ╔═╡ 633b3d12-76a4-11eb-0bc7-b9bf9116933f
 # Function describing evolution of system with initial value inival 
@@ -99,6 +107,17 @@ function create_grid(n,dim)
       grid=simplexgrid(X,X)
 	end
 end
+
+# ╔═╡ 023173fe-8644-11eb-3303-e351dbf44aaf
+# We show an example grid, for the 1 dimensional problem
+gridplot(create_grid(10, 1),Plotter=PyPlot,resolution=(600,200))
+
+# ╔═╡ b1a3c0a6-8643-11eb-1a7b-cd4720e77617
+md"""
+Now, we create the bidomain function with flux and reaction.
+
+"""
+
 
 # ╔═╡ fa52bcd0-76f8-11eb-0d58-955a514a00b1
 function bidomain(;n=100,dim=1,sigma_i=1, sigma_e=1, epsilon=0.1, gamma=0.5, beta=1, tstep=0.05, tend=30,dtgrowth=1.0)
@@ -224,8 +243,11 @@ end
 # ╠═60941eaa-1aea-11eb-1277-97b991548781
 # ╟─48b1a0ac-76f3-11eb-05bd-cbcfae8e2f27
 # ╟─397c9290-76f5-11eb-1114-4bd31f7ecf9a
-# ╠═633b3d12-76a4-11eb-0bc7-b9bf9116933f
-# ╠═4b9f5030-76cc-11eb-117c-91ca8336c30b
+# ╟─90328ff6-8643-11eb-0f55-314c878ba3ec
+# ╟─633b3d12-76a4-11eb-0bc7-b9bf9116933f
+# ╟─4b9f5030-76cc-11eb-117c-91ca8336c30b
+# ╠═023173fe-8644-11eb-3303-e351dbf44aaf
+# ╟─b1a3c0a6-8643-11eb-1a7b-cd4720e77617
 # ╠═fa52bcd0-76f8-11eb-0d58-955a514a00b1
 # ╠═4e66a016-76f9-11eb-2023-6dfc3374c066
 # ╠═106d3bc0-76fa-11eb-1ee6-3fa73be52226
