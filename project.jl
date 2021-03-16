@@ -120,9 +120,10 @@ Now, we create the bidomain function with flux and reaction.
 
 
 # ╔═╡ fa52bcd0-76f8-11eb-0d58-955a514a00b1
-function bidomain(;n=100,dim=1,sigma_i=1, sigma_e=1, epsilon=0.1, gamma=0.5, beta=1, tstep=0.05, tend=30,dtgrowth=1.0)
-
+function bidomain(;n=100,dim=1,sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5, beta=1, tstep=0.05, tend=30,dtgrowth=1.0)
+	
 	grid=create_grid(n,dim)
+	L=collect(0:70.0/n:70.0)
 	function storage!(f,u,node)
 		# Set all indices of f to values in u
         f.=u
@@ -186,7 +187,7 @@ for i=1:num_nodes(grid)
 
 	# We set the initial value to 2 if within the first 1/20th of the grid, as specified by the paper	
 	
-	if i < num_nodes(grid) / 20
+	if L[i] < 70 / 20
     	inival[1,i]= 2
 	else
 		inival[1,i]= -1.28791
@@ -251,7 +252,7 @@ end
 # ╠═fa52bcd0-76f8-11eb-0d58-955a514a00b1
 # ╠═4e66a016-76f9-11eb-2023-6dfc3374c066
 # ╠═106d3bc0-76fa-11eb-1ee6-3fa73be52226
-# ╟─e2cbc0ec-76f9-11eb-2870-f10f6cdc8be4
+# ╠═e2cbc0ec-76f9-11eb-2870-f10f6cdc8be4
 # ╠═19d6cc30-85af-11eb-3e69-ffc5f9b28f73
 # ╟─3ab28264-6c64-11eb-29f4-a9ed2e9eba16
 # ╟─d32173ec-66e8-11eb-11ad-f9605b4964b2
