@@ -31,6 +31,15 @@ md"""
   Gregoire Pourtier & Conrad Schloer
 """
 
+# ╔═╡ 90328ff6-8643-11eb-0f55-314c878ba3ec
+md"""
+## 1.1 Implementation
+
+We define evolution and create_grid similar to the lecture, though the grid now goes to 70 instead of 1.
+
+"""
+
+
 # ╔═╡ 397c9290-76f5-11eb-1114-4bd31f7ecf9a
 md"""
 ## 1.0 Problem Overview
@@ -55,14 +64,8 @@ $g(u, v)= u + \beta - \gamma v \;$
 
 """
 
-# ╔═╡ 90328ff6-8643-11eb-0f55-314c878ba3ec
-md"""
-## 1.1 Implementation
-
-We define evolution and create_grid similar to the lecture, though the grid now goes to 70 instead of 1.
-
-"""
-
+# ╔═╡ 95a667de-880d-11eb-0171-b93ed1f38ea1
+grid_size = 1.0
 
 # ╔═╡ 633b3d12-76a4-11eb-0bc7-b9bf9116933f
 # Function describing evolution of system with initial value inival 
@@ -100,7 +103,7 @@ function create_grid(n,dim)
 	if dim==2
 		nx=ceil(sqrt(n))
 	end
-	X=collect(0:70.0/nx:70.0)
+	X=collect(0:grid_size/nx:grid_size)
 	if dim==1
       grid=simplexgrid(X)
 	else
@@ -120,10 +123,10 @@ Now, we create the bidomain function with flux and reaction.
 
 
 # ╔═╡ fa52bcd0-76f8-11eb-0d58-955a514a00b1
-function bidomain(;n=100,dim=1,sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5, beta=1, tstep=0.05, tend=30,dtgrowth=1.0)
+function bidomain(;n=100,dim=1,sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5, beta=1, tstep=0.0001, tend=30,dtgrowth=1.0)
 	
 	grid=create_grid(n,dim)
-	L=collect(0:70.0/n:70.0)
+	L=collect(0:grid_size/n:grid_size)
 	function storage!(f,u,node)
 		# Set all indices of f to values in u
         f[1] = u[1]
@@ -189,7 +192,7 @@ for i=1:num_nodes(grid)
 
 	# We set the initial value to 2 if within the first 1/20th of the grid, as specified by the paper	
 	
-	if L[i] < 70 / 20
+	if L[i] < grid_size / 20
     	inival[1,i]= 2
 	else
 		inival[1,i]= -1.28791
@@ -204,12 +207,6 @@ end
 
 	evolution(inival,bidomain_system,grid,tstep,tend,dtgrowth)	
 end
-
-
-# ╔═╡ ba14782e-87f2-11eb-3cdf-e5be490b4254
-
-
-# ╔═╡ 64acf6b6-87f1-11eb-1d84-850d96d2c66e
 
 
 # ╔═╡ 4e66a016-76f9-11eb-2023-6dfc3374c066
@@ -251,15 +248,14 @@ end
 # ╔═╡ Cell order:
 # ╠═60941eaa-1aea-11eb-1277-97b991548781
 # ╟─48b1a0ac-76f3-11eb-05bd-cbcfae8e2f27
-# ╟─397c9290-76f5-11eb-1114-4bd31f7ecf9a
 # ╟─90328ff6-8643-11eb-0f55-314c878ba3ec
+# ╟─397c9290-76f5-11eb-1114-4bd31f7ecf9a
+# ╟─95a667de-880d-11eb-0171-b93ed1f38ea1
 # ╟─633b3d12-76a4-11eb-0bc7-b9bf9116933f
-# ╟─4b9f5030-76cc-11eb-117c-91ca8336c30b
+# ╠═4b9f5030-76cc-11eb-117c-91ca8336c30b
 # ╠═023173fe-8644-11eb-3303-e351dbf44aaf
 # ╟─b1a3c0a6-8643-11eb-1a7b-cd4720e77617
 # ╠═fa52bcd0-76f8-11eb-0d58-955a514a00b1
-# ╠═ba14782e-87f2-11eb-3cdf-e5be490b4254
-# ╠═64acf6b6-87f1-11eb-1d84-850d96d2c66e
 # ╠═4e66a016-76f9-11eb-2023-6dfc3374c066
 # ╠═106d3bc0-76fa-11eb-1ee6-3fa73be52226
 # ╠═e2cbc0ec-76f9-11eb-2870-f10f6cdc8be4
