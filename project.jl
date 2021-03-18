@@ -123,7 +123,7 @@ Now, we create the bidomain function with flux and reaction.
 
 
 # ╔═╡ fa52bcd0-76f8-11eb-0d58-955a514a00b1
-function bidomain(;n=100,dim=1,sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5, beta=1, tstep=0.0001, tend=30,dtgrowth=1.0)
+function bidomain(;n=100,dim=1,sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5, beta=1, tstep=0.0001, tend=3,dtgrowth=1.05)
 	
 	grid=create_grid(n,dim)
 	L=collect(0:grid_size/n:grid_size)
@@ -135,82 +135,91 @@ function bidomain(;n=100,dim=1,sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5,
     end
 
 	
-function bidomain_flux!(f,_u,edge)
+	function bidomain_flux!(f,_u,edge)
 		u=unknowns(edge,_u)
-	# u
-    f[1] = sigma_i * (u[1,1] - u[1, 2]) + sigma_i * (u[2,1] - u[2,2])
-	# u_e
-	f[2] = sigma_i * (u[1,1] - u[1, 2]) + (sigma_i + sigma_e) * (u[2,1]-u[2,2])
-	# v
-	#f[3] = 0
+		# u
+		f[1] = -1 * (sigma_i * (u[1,1] - u[1, 2]) + sigma_i * (u[2,1] - u[2,2]))
+		# u_e
+		f[2] = sigma_i * (u[1,1] - u[1, 2]) + (sigma_i + sigma_e) * (u[2,1]-u[2,2])
+		# v
+		#f[3] = 0
 
-end
-# Reaction:
-function bidomain_reaction!(f,u,node)
-    f[1] = (1 / epsilon) *  (u[1]  + (u[1] ^ 3) / 3 - u[3])
-	#f[2] = 0
-	f[3] = epsilon * (u[1]  + beta - gamma * u[3])
-end
-	
-# Source
-"""
-function bidomain_source!(f,node)
-	f[1] = 1
-	f[2] = 1
-	f[3] = 1
-end
-"""
-	
-# Create system
-bidomain_physics=VoronoiFVM.Physics(flux=bidomain_flux!,storage=storage!,
-                                 num_species=3,reaction=bidomain_reaction!, 										# source=bidomain_source!
-	)
-bidomain_system=VoronoiFVM.DenseSystem(grid,bidomain_physics)
+	end
+	# Reaction:
+	function bidomain_reaction!(f,u,node)
+		f[1] = (1 / epsilon) *  (u[1]  + (u[1] ^ 3) / 3 - u[3])
+		#f[2] = 0
+		f[3] = epsilon * (u[1]  + beta - gamma * u[3])
+	end
 
-enable_species!(bidomain_system,1,[1])
-enable_species!(bidomain_system,2,[1])
-enable_species!(bidomain_system,3,[1])
-	
-# Boundaries for u
-boundary_neumann!(bidomain_system, 1, 1, 0)
-boundary_neumann!(bidomain_system, 1, 2, 0)
+	# Source
+	"""
+	function bidomain_source!(f,node)
+		f[1] = 1
+		f[2] = 1
+		f[3] = 1
+	end
+	"""
 
-# Boundaries for u_e
-boundary_neumann!(bidomain_system, 2, 1, 0)
-boundary_neumann!(bidomain_system, 2, 2, 0)
+	# Create system
+	bidomain_physics=VoronoiFVM.Physics(flux=bidomain_flux!,storage=storage!,
+									 num_species=3,reaction=bidomain_reaction!, 										# source=bidomain_source!
+		)
+	bidomain_system=VoronoiFVM.DenseSystem(grid,bidomain_physics)
 
-# Dirichlet to set u_e = 0 at index 0
-boundary_dirichlet!(bidomain_system, 2, 1, 0)
+	enable_species!(bidomain_system,1,[1])
+	enable_species!(bidomain_system,2,[1])
+	enable_species!(bidomain_system,3,[1])
+
+	# Boundaries for u
+	boundary_neumann!(bidomain_system, 1, 1, 0)
+	boundary_neumann!(bidomain_system, 1, 2, 0)
+
+	# Boundaries for u_e
+	boundary_neumann!(bidomain_system, 2, 1, 0)
+	boundary_neumann!(bidomain_system, 2, 2, 0)
+
+	# Dirichlet to set u_e = 0 at index 0
+	boundary_dirichlet!(bidomain_system, 2, 1, 0)
 
 
 	inival=unknowns(bidomain_system)
-for i=1:num_nodes(grid)
-	# We solved f(u, v) = 0 and g(u, v) = 0 with our parameters to get
-	# u = -1.28791, v = -0.57582
-	# u_e = 0 as specified in the paper		
-	# TODO solve the equations programmatically here based on parameters
+	for i=1:num_nodes(grid)
+		# We solved f(u, v) = 0 and g(u, v) = 0 with our parameters to get
+		# u = -1.28791, v = -0.57582
+		# u_e = 0 as specified in the paper		
+		# TODO solve the equations programmatically here based on parameters
 
-	# We set the initial value to 2 if within the first 1/20th of the grid, as specified by the paper	
-	
-	if L[i] < grid_size / 20
-    	inival[1,i]= 2
-	else
-		inival[1,i]= -1.28791
+		# We set the initial value to 2 if within the first 1/20th of the grid, as specified by the paper	
+
+		if L[i] < grid_size / 20
+			inival[1,i]= 2
+		else
+			inival[1,i]= -1.28791
+		end
+
+
+
+		inival[2,i]= 0
+		inival[3,i]= -0.57582
+
 	end
-		
-	
-			
-    inival[2,i]= 0
-	inival[3,i]= -0.57582
-
-end
 
 	evolution(inival,bidomain_system,grid,tstep,tend,dtgrowth)	
 end
 
 
+# ╔═╡ 9fa3abc2-8815-11eb-0c33-cfc6903e8b06
+
+
+# ╔═╡ 5ac45222-8815-11eb-0437-4d12a087928e
+
+
+# ╔═╡ 965d83ea-8814-11eb-3b8c-63c96ae595b0
+
+
 # ╔═╡ 4e66a016-76f9-11eb-2023-6dfc3374c066
-result_bidomain=bidomain(n=100,dim=1);
+result_bidomain=bidomain(n=1000,dim=1);
 
 # ╔═╡ 106d3bc0-76fa-11eb-1ee6-3fa73be52226
 md"""
@@ -222,15 +231,15 @@ let
 	bivis=GridVisualizer(layout=(1,3),resolution=(600,300),Plotter=PyPlot)
 	scalarplot!(bivis[1,1],result_bidomain.grid,
 	       result_bidomain.solutions[t_bidomain][1,:],
-		   title="u: t=$(round(result_bidomain.times[t_bidomain], digits=2))",
+		   title="u: t=$(round(result_bidomain.times[t_bidomain], digits=6))",
 	       flimits=(-2,2),colormap=:cool,levels=50,clear=true)
 	scalarplot!(bivis[1,2],result_bidomain.grid,
 	       result_bidomain.solutions[t_bidomain][2,:],
-		   title="u_e: t=$(round(result_bidomain.times[t_bidomain], digits=2))",
+		   title="u_e: t=$(round(result_bidomain.times[t_bidomain], digits=6))",
 	       flimits=(-2,2),colormap=:cool,levels=50,show=true)
 	scalarplot!(bivis[1,3],result_bidomain.grid,
 	       result_bidomain.solutions[t_bidomain][3,:],
-		   title="v: t=$(round(result_bidomain.times[t_bidomain], digits=2))",
+		   title="v: t=$(round(result_bidomain.times[t_bidomain], digits=6))",
 	       flimits=(-2,2),colormap=:cool,levels=50,show=true)
 end
 
@@ -250,12 +259,15 @@ end
 # ╟─48b1a0ac-76f3-11eb-05bd-cbcfae8e2f27
 # ╟─90328ff6-8643-11eb-0f55-314c878ba3ec
 # ╟─397c9290-76f5-11eb-1114-4bd31f7ecf9a
-# ╟─95a667de-880d-11eb-0171-b93ed1f38ea1
-# ╟─633b3d12-76a4-11eb-0bc7-b9bf9116933f
-# ╠═4b9f5030-76cc-11eb-117c-91ca8336c30b
+# ╠═95a667de-880d-11eb-0171-b93ed1f38ea1
+# ╠═633b3d12-76a4-11eb-0bc7-b9bf9116933f
+# ╟─4b9f5030-76cc-11eb-117c-91ca8336c30b
 # ╠═023173fe-8644-11eb-3303-e351dbf44aaf
 # ╟─b1a3c0a6-8643-11eb-1a7b-cd4720e77617
 # ╠═fa52bcd0-76f8-11eb-0d58-955a514a00b1
+# ╠═9fa3abc2-8815-11eb-0c33-cfc6903e8b06
+# ╠═5ac45222-8815-11eb-0437-4d12a087928e
+# ╠═965d83ea-8814-11eb-3b8c-63c96ae595b0
 # ╠═4e66a016-76f9-11eb-2023-6dfc3374c066
 # ╠═106d3bc0-76fa-11eb-1ee6-3fa73be52226
 # ╠═e2cbc0ec-76f9-11eb-2870-f10f6cdc8be4
