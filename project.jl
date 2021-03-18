@@ -126,7 +126,9 @@ function bidomain(;n=100,dim=1,sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5,
 	L=collect(0:70.0/n:70.0)
 	function storage!(f,u,node)
 		# Set all indices of f to values in u
-        f.=u
+        f[1] = u[1]
+		f[2] = 0
+		f[3] = u[3]
     end
 
 	
@@ -142,7 +144,7 @@ function bidomain_flux!(f,_u,edge)
 end
 # Reaction:
 function bidomain_reaction!(f,u,node)
-    f[1] = (1 / epsilon) *  (u[1]  + u[1] ^ 3 / 3 - u[3])
+    f[1] = (1 / epsilon) *  (u[1]  + (u[1] ^ 3) / 3 - u[3])
 	#f[2] = 0
 	f[3] = epsilon * (u[1]  + beta - gamma * u[3])
 end
@@ -204,6 +206,12 @@ end
 end
 
 
+# ╔═╡ ba14782e-87f2-11eb-3cdf-e5be490b4254
+
+
+# ╔═╡ 64acf6b6-87f1-11eb-1d84-850d96d2c66e
+
+
 # ╔═╡ 4e66a016-76f9-11eb-2023-6dfc3374c066
 result_bidomain=bidomain(n=100,dim=1);
 
@@ -250,6 +258,8 @@ end
 # ╠═023173fe-8644-11eb-3303-e351dbf44aaf
 # ╟─b1a3c0a6-8643-11eb-1a7b-cd4720e77617
 # ╠═fa52bcd0-76f8-11eb-0d58-955a514a00b1
+# ╠═ba14782e-87f2-11eb-3cdf-e5be490b4254
+# ╠═64acf6b6-87f1-11eb-1d84-850d96d2c66e
 # ╠═4e66a016-76f9-11eb-2023-6dfc3374c066
 # ╠═106d3bc0-76fa-11eb-1ee6-3fa73be52226
 # ╠═e2cbc0ec-76f9-11eb-2870-f10f6cdc8be4
