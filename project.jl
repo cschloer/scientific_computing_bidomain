@@ -20,8 +20,8 @@ begin
 	Pkg.activate(mktempdir())
 	using Revise
 	Pkg.add("Revise")
-	Pkg.add(["PyPlot","PlutoUI","ExtendableGrids","GridVisualize", "VoronoiFVM"])
-	using PlutoUI,PyPlot,ExtendableGrids,VoronoiFVM,GridVisualize
+	Pkg.add(["PyPlot","PlutoUI","ExtendableGrids","GridVisualize", "VoronoiFVM", "NLsolve"])
+	using PlutoUI,PyPlot,ExtendableGrids,VoronoiFVM,GridVisualize,NLsolve
 	PyPlot.svg(true)
 end;
 
@@ -41,7 +41,7 @@ We define evolution and create_grid similar to the lecture, though the grid now 
 
 
 # ╔═╡ 397c9290-76f5-11eb-1114-4bd31f7ecf9a
-md"""
+	md"""
 ## 1.0 Problem Overview
 
 
@@ -132,7 +132,7 @@ Now, we create the bidomain function with flux and reaction.
 
 
 # ╔═╡ fa52bcd0-76f8-11eb-0d58-955a514a00b1
-function bidomain(;n=100,dim=1,sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5, beta=1, tstep=0.001, tend=15,dtgrowth=1.005)
+function bidomain(;n=100,dim=1,sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5, beta=1, tstep=0.1, tend=15,dtgrowth=1.000)
 	
 	grid=create_grid(n,dim)
 	L=collect(0:grid_size/n:grid_size)
@@ -191,24 +191,33 @@ function bidomain(;n=100,dim=1,sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5,
 
 
 	inival=unknowns(bidomain_system)
+	
+	# We solve the equilibriam of the model, aka where f and g are 0
+	 function f!(F, v)
+		u = v[1]
+		v = v[2]
+		F[1] = u - (u^3)/3 - v
+		F[2] = u + beta - gamma * v
+	 end
+ 
+ 	 res = nlsolve(f!, [0.0; 0.0])
+	 u_init = res.zero[1]
+	 v_init = res.zero[2]
+
 	for i=1:num_nodes(grid)
-		# We solved f(u, v) = 0 and g(u, v) = 0 with our parameters to get
-		# u = -1.28791, v = -0.57582
-		# u_e = 0 as specified in the paper		
-		# TODO solve the equations programmatically here based on parameters
 
 		# We set the initial value to 2 if within the first 1/20th of the grid, as specified by the paper	
 
 		if L[i] < grid_size / 20
 			inival[1,i]= 2
 		else
-			inival[1,i]= -1.28791
+			inival[1,i]= u_init
 		end
 
 
 
 		inival[2,i]= 0
-		inival[3,i]= -0.57582
+		inival[3,i]= v_init
 
 	end
 
@@ -256,7 +265,7 @@ end
 # ╠═60941eaa-1aea-11eb-1277-97b991548781
 # ╟─48b1a0ac-76f3-11eb-05bd-cbcfae8e2f27
 # ╟─90328ff6-8643-11eb-0f55-314c878ba3ec
-# ╠═397c9290-76f5-11eb-1114-4bd31f7ecf9a
+# ╟─397c9290-76f5-11eb-1114-4bd31f7ecf9a
 # ╠═95a667de-880d-11eb-0171-b93ed1f38ea1
 # ╟─633b3d12-76a4-11eb-0bc7-b9bf9116933f
 # ╟─4b9f5030-76cc-11eb-117c-91ca8336c30b
