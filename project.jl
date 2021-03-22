@@ -61,11 +61,20 @@ $f(u, v)= u−\frac{u^{3}}{3}−v\;$
 $g(u, v)= u + \beta - \gamma v \;$
 
 
+We can therefore rewrite the equations as
+
+
+$\frac{\partial u}{\partial t} - \nabla\cdot (\sigma_{i} \nabla u + \sigma_{i} \nabla u_{e}) - \frac{1}{\epsilon} (u - \frac{u^{3}}{3} - v) = 0   \;$
+
+$\nabla\cdot (\sigma_{i} \nabla u + (\sigma_{i} + \sigma_{e}) \nabla u_{e}) = 0 \;$
+
+$\frac{\partial v}{\partial t} - \epsilon (u + \beta - \gamma v) = 0\;$
+
 
 """
 
 # ╔═╡ 95a667de-880d-11eb-0171-b93ed1f38ea1
-grid_size = 1.0
+grid_size = 10.0
 
 # ╔═╡ 633b3d12-76a4-11eb-0bc7-b9bf9116933f
 # Function describing evolution of system with initial value inival 
@@ -123,7 +132,7 @@ Now, we create the bidomain function with flux and reaction.
 
 
 # ╔═╡ fa52bcd0-76f8-11eb-0d58-955a514a00b1
-function bidomain(;n=100,dim=1,sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5, beta=1, tstep=0.0001, tend=3,dtgrowth=1.05)
+function bidomain(;n=100,dim=1,sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5, beta=1, tstep=0.00001, tend=8,dtgrowth=1.05)
 	
 	grid=create_grid(n,dim)
 	L=collect(0:grid_size/n:grid_size)
@@ -138,18 +147,16 @@ function bidomain(;n=100,dim=1,sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5,
 	function bidomain_flux!(f,_u,edge)
 		u=unknowns(edge,_u)
 		# u
-		f[1] = -1 * (sigma_i * (u[1,1] - u[1, 2]) + sigma_i * (u[2,1] - u[2,2]))
+		f[1] = sigma_i * (u[1,1] - u[1, 2]) + sigma_i * (u[2,1] - u[2,2])
 		# u_e
 		f[2] = sigma_i * (u[1,1] - u[1, 2]) + (sigma_i + sigma_e) * (u[2,1]-u[2,2])
 		# v
-		#f[3] = 0
 
 	end
 	# Reaction:
 	function bidomain_reaction!(f,u,node)
-		f[1] = (1 / epsilon) *  (u[1]  + (u[1] ^ 3) / 3 - u[3])
-		#f[2] = 0
-		f[3] = epsilon * (u[1]  + beta - gamma * u[3])
+		f[1] = (-1 / epsilon) *  (u[1]  - (u[1] ^ 3) / 3 - u[3])
+		f[3] = - 1 * epsilon * (u[1]  + beta - gamma * u[3])
 	end
 
 	# Source
@@ -209,15 +216,6 @@ function bidomain(;n=100,dim=1,sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5,
 end
 
 
-# ╔═╡ 9fa3abc2-8815-11eb-0c33-cfc6903e8b06
-
-
-# ╔═╡ 5ac45222-8815-11eb-0437-4d12a087928e
-
-
-# ╔═╡ 965d83ea-8814-11eb-3b8c-63c96ae595b0
-
-
 # ╔═╡ 4e66a016-76f9-11eb-2023-6dfc3374c066
 result_bidomain=bidomain(n=1000,dim=1);
 
@@ -258,16 +256,13 @@ end
 # ╠═60941eaa-1aea-11eb-1277-97b991548781
 # ╟─48b1a0ac-76f3-11eb-05bd-cbcfae8e2f27
 # ╟─90328ff6-8643-11eb-0f55-314c878ba3ec
-# ╟─397c9290-76f5-11eb-1114-4bd31f7ecf9a
+# ╠═397c9290-76f5-11eb-1114-4bd31f7ecf9a
 # ╠═95a667de-880d-11eb-0171-b93ed1f38ea1
-# ╠═633b3d12-76a4-11eb-0bc7-b9bf9116933f
+# ╟─633b3d12-76a4-11eb-0bc7-b9bf9116933f
 # ╟─4b9f5030-76cc-11eb-117c-91ca8336c30b
 # ╠═023173fe-8644-11eb-3303-e351dbf44aaf
 # ╟─b1a3c0a6-8643-11eb-1a7b-cd4720e77617
 # ╠═fa52bcd0-76f8-11eb-0d58-955a514a00b1
-# ╠═9fa3abc2-8815-11eb-0c33-cfc6903e8b06
-# ╠═5ac45222-8815-11eb-0437-4d12a087928e
-# ╠═965d83ea-8814-11eb-3b8c-63c96ae595b0
 # ╠═4e66a016-76f9-11eb-2023-6dfc3374c066
 # ╠═106d3bc0-76fa-11eb-1ee6-3fa73be52226
 # ╠═e2cbc0ec-76f9-11eb-2870-f10f6cdc8be4
