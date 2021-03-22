@@ -31,18 +31,9 @@ md"""
   Gregoire Pourtier & Conrad Schloer
 """
 
-# ╔═╡ 90328ff6-8643-11eb-0f55-314c878ba3ec
-md"""
-## 1.1 Implementation
-
-We define evolution and create_grid similar to the lecture, though the grid now goes to 70 instead of 1.
-
-"""
-
-
 # ╔═╡ 397c9290-76f5-11eb-1114-4bd31f7ecf9a
 	md"""
-## 1.0 Problem Overview
+## 1. Problem Overview
 
 
 Equations for the Bidomain problem, a three species problem
@@ -73,8 +64,17 @@ $\frac{\partial v}{\partial t} - \epsilon (u + \beta - \gamma v) = 0\;$
 
 """
 
+# ╔═╡ 90328ff6-8643-11eb-0f55-314c878ba3ec
+md"""
+## 2. Implementation
+
+We define evolution and create_grid similar to the lecture, though the grid now goes to 70 instead of 1.
+
+"""
+
+
 # ╔═╡ 95a667de-880d-11eb-0171-b93ed1f38ea1
-grid_size = 70.0
+spatial_domain = 70.0
 
 # ╔═╡ 633b3d12-76a4-11eb-0bc7-b9bf9116933f
 # Function describing evolution of system with initial value inival 
@@ -112,17 +112,92 @@ function create_grid(n,dim)
 	if dim==2
 		nx=ceil(sqrt(n))
 	end
-	X=collect(0:grid_size/nx:grid_size)
+	X=collect(0:spatial_domain/nx:spatial_domain)
 	if dim==1
       grid=simplexgrid(X)
 	else
       grid=simplexgrid(X,X)
 	end
+	return grid,X
 end
 
 # ╔═╡ 023173fe-8644-11eb-3303-e351dbf44aaf
 # We show an example grid, for the 1 dimensional problem
-gridplot(create_grid(10, 1),Plotter=PyPlot,resolution=(600,200))
+gridplot(create_grid(10, 1)[1],Plotter=PyPlot,resolution=(600,200))
+
+# ╔═╡ 7278ba0a-8b00-11eb-3629-e55ab965940c
+
+
+# ╔═╡ 3402cd3c-8afc-11eb-2af1-312ae538cd1a
+md"""
+### 2.1 Solve the stationary problem
+"""
+
+# ╔═╡ 82ed33a0-8b00-11eb-11d0-cddce2e38e2c
+md"""
+Grid in domain $\Omega=(0,70)$ consisting of N=$(@bind N Scrubbable(500:100:2000,default=1000)) points.
+"""
+
+# ╔═╡ 990dd67c-8afc-11eb-0f5d-f1525f921906
+grid1d_a = create_grid(N,1)[1]
+
+# ╔═╡ 50bc7ea0-8afc-11eb-1101-d7a7373ed0ce
+function bidomain_stationary(grid; sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5, beta=1)
+
+	function bidomain_flux!(f,_u,edge)
+		u=unknowns(edge,_u)
+		
+		f[1] = (sigma_i * (u[1,1] - u[1, 2]) + sigma_i * (u[2,1] - u[2,2]))
+		
+		f[2] = sigma_i * (u[1,1] - u[1, 2]) + (sigma_i + sigma_e) * (u[2,1]-u[2,2])
+	end
+
+	function bidomain_reaction!(f,u,node)
+		f[1] = -(1 / epsilon) *  (u[1]  - (u[1] ^ 3) / 3 - u[3])
+
+		f[3] = -epsilon * (u[1]  + beta - gamma * u[3])
+	end
+
+	# Create system
+	bidomain_physics=VoronoiFVM.Physics(flux=bidomain_flux!,
+									 num_species=3,reaction=bidomain_reaction!)
+	
+	bidomain_system=VoronoiFVM.DenseSystem(grid,bidomain_physics)
+
+	enable_species!(bidomain_system,1,[1])
+	enable_species!(bidomain_system,2,[1])
+	enable_species!(bidomain_system,3,[1])
+
+	# Dirichlet to set u_e = 0 at index 0
+	boundary_dirichlet!(bidomain_system, 2, 1, 0)
+
+	solve(unknowns(bidomain_system,inival=0),bidomain_system)
+end
+
+# ╔═╡ 5f7bbdc0-8afc-11eb-1b38-e3448733ad4b
+result_bidomain_stationary = bidomain_stationary(grid1d_a);
+
+# ╔═╡ 81f270e2-8afc-11eb-24be-5952f95e6aa3
+let
+	bivis=GridVisualizer(layout=(1,3),resolution=(600,300),Plotter=PyPlot)
+	scalarplot!(bivis[1,1],grid1d_a,
+	       result_bidomain_stationary[1,:],
+		   title="u",
+	       flimits=(-2,2),colormap=:cool,levels=50,clear=true)
+	scalarplot!(bivis[1,2],grid1d_a,
+	       result_bidomain_stationary[2,:],
+		   title="u_e",
+	       flimits=(-2,2),colormap=:cool,levels=50,show=true)
+	scalarplot!(bivis[1,3],grid1d_a,
+	       result_bidomain_stationary[3,:],
+		   title="v",
+	       flimits=(-2,2),colormap=:cool,levels=50,show=true)
+end
+
+# ╔═╡ cbb19904-8afc-11eb-19a5-47ad0bae2bfd
+md"""
+### 2.2 Solve the unstationary problem
+"""
 
 # ╔═╡ b1a3c0a6-8643-11eb-1a7b-cd4720e77617
 md"""
@@ -132,10 +207,10 @@ Now, we create the bidomain function with flux and reaction.
 
 
 # ╔═╡ fa52bcd0-76f8-11eb-0d58-955a514a00b1
-function bidomain(;n=100,dim=1,sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5, beta=1, tstep=0.1, tend=15,dtgrowth=1.000)
+function bidomain(;n=100,dim=1,sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5, beta=1, tstep=0.1, tend=50,dtgrowth=1.005)
 	
-	grid=create_grid(n,dim)
-	L=collect(0:grid_size/n:grid_size)
+	grid, L =create_grid(n,dim)
+	
 	function storage!(f,u,node)
 		# Set all indices of f to values in u
         f[1] = u[1]
@@ -188,27 +263,29 @@ function bidomain(;n=100,dim=1,sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5,
 
 	# Dirichlet to set u_e = 0 at index 0
 	boundary_dirichlet!(bidomain_system, 2, 1, 0)
+	
+	# Other way to do it is by implementing the penalty method
 
 
 	inival=unknowns(bidomain_system)
 	
 	# We solve the equilibriam of the model, aka where f and g are 0
-	 function f!(F, v)
+	function f!(F, v)
 		u = v[1]
 		v = v[2]
 		F[1] = u - (u^3)/3 - v
 		F[2] = u + beta - gamma * v
-	 end
+	end
  
- 	 res = nlsolve(f!, [0.0; 0.0])
-	 u_init = res.zero[1]
-	 v_init = res.zero[2]
+ 	res = nlsolve(f!, [0.0; 0.0])
+	u_init = res.zero[1]
+	v_init = res.zero[2]
 
 	for i=1:num_nodes(grid)
 
-		# We set the initial value to 2 if within the first 1/20th of the grid, as specified by the paper	
+# We set the initial value to 2 if within the first 1/20th of the grid, as specified by the paper
 
-		if L[i] < grid_size / 20
+		if L[i] < spatial_domain / 20
 			inival[1,i]= 2
 		else
 			inival[1,i]= u_init
@@ -250,9 +327,6 @@ let
 	       flimits=(-2,2),colormap=:cool,levels=50,show=true)
 end
 
-# ╔═╡ 19d6cc30-85af-11eb-3e69-ffc5f9b28f73
-
-
 # ╔═╡ 3ab28264-6c64-11eb-29f4-a9ed2e9eba16
 TableOfContents()
 
@@ -264,17 +338,24 @@ end
 # ╔═╡ Cell order:
 # ╠═60941eaa-1aea-11eb-1277-97b991548781
 # ╟─48b1a0ac-76f3-11eb-05bd-cbcfae8e2f27
-# ╟─90328ff6-8643-11eb-0f55-314c878ba3ec
 # ╟─397c9290-76f5-11eb-1114-4bd31f7ecf9a
+# ╟─90328ff6-8643-11eb-0f55-314c878ba3ec
 # ╠═95a667de-880d-11eb-0171-b93ed1f38ea1
 # ╟─633b3d12-76a4-11eb-0bc7-b9bf9116933f
 # ╟─4b9f5030-76cc-11eb-117c-91ca8336c30b
 # ╠═023173fe-8644-11eb-3303-e351dbf44aaf
+# ╟─7278ba0a-8b00-11eb-3629-e55ab965940c
+# ╟─3402cd3c-8afc-11eb-2af1-312ae538cd1a
+# ╟─82ed33a0-8b00-11eb-11d0-cddce2e38e2c
+# ╟─990dd67c-8afc-11eb-0f5d-f1525f921906
+# ╠═50bc7ea0-8afc-11eb-1101-d7a7373ed0ce
+# ╠═5f7bbdc0-8afc-11eb-1b38-e3448733ad4b
+# ╠═81f270e2-8afc-11eb-24be-5952f95e6aa3
+# ╟─cbb19904-8afc-11eb-19a5-47ad0bae2bfd
 # ╟─b1a3c0a6-8643-11eb-1a7b-cd4720e77617
 # ╠═fa52bcd0-76f8-11eb-0d58-955a514a00b1
 # ╠═4e66a016-76f9-11eb-2023-6dfc3374c066
 # ╟─106d3bc0-76fa-11eb-1ee6-3fa73be52226
 # ╟─e2cbc0ec-76f9-11eb-2870-f10f6cdc8be4
-# ╠═19d6cc30-85af-11eb-3e69-ffc5f9b28f73
 # ╟─3ab28264-6c64-11eb-29f4-a9ed2e9eba16
 # ╟─d32173ec-66e8-11eb-11ad-f9605b4964b2
