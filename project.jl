@@ -192,7 +192,7 @@ function bidomain(;n=100,dim=1,sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5,
 
 	inival=unknowns(bidomain_system)
 	
-	# We solve the equilibriam of the model, aka where f and g are 0
+	# We solve the equilibriam of the system, aka where f and g are 0
 	 function f!(F, v)
 		u = v[1]
 		v = v[2]
@@ -226,7 +226,7 @@ end
 
 
 # ╔═╡ 4e66a016-76f9-11eb-2023-6dfc3374c066
-result_bidomain=bidomain(n=1000,dim=1);
+result_bidomain=bidomain(n=100,dim=1);
 
 # ╔═╡ 106d3bc0-76fa-11eb-1ee6-3fa73be52226
 md"""
