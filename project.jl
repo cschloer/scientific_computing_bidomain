@@ -74,7 +74,7 @@ $\frac{\partial v}{\partial t} - \epsilon (u + \beta - \gamma v) = 0\;$
 """
 
 # ╔═╡ 95a667de-880d-11eb-0171-b93ed1f38ea1
-grid_size = 10.0
+grid_size = 70.0
 
 # ╔═╡ 633b3d12-76a4-11eb-0bc7-b9bf9116933f
 # Function describing evolution of system with initial value inival 
@@ -132,7 +132,7 @@ Now, we create the bidomain function with flux and reaction.
 
 
 # ╔═╡ fa52bcd0-76f8-11eb-0d58-955a514a00b1
-function bidomain(;n=100,dim=1,sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5, beta=1, tstep=0.00001, tend=8,dtgrowth=1.05)
+function bidomain(;n=100,dim=1,sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5, beta=1, tstep=0.001, tend=15,dtgrowth=1.005)
 	
 	grid=create_grid(n,dim)
 	L=collect(0:grid_size/n:grid_size)
@@ -264,8 +264,8 @@ end
 # ╟─b1a3c0a6-8643-11eb-1a7b-cd4720e77617
 # ╠═fa52bcd0-76f8-11eb-0d58-955a514a00b1
 # ╠═4e66a016-76f9-11eb-2023-6dfc3374c066
-# ╠═106d3bc0-76fa-11eb-1ee6-3fa73be52226
-# ╠═e2cbc0ec-76f9-11eb-2870-f10f6cdc8be4
+# ╟─106d3bc0-76fa-11eb-1ee6-3fa73be52226
+# ╟─e2cbc0ec-76f9-11eb-2870-f10f6cdc8be4
 # ╠═19d6cc30-85af-11eb-3e69-ffc5f9b28f73
 # ╟─3ab28264-6c64-11eb-29f4-a9ed2e9eba16
 # ╟─d32173ec-66e8-11eb-11ad-f9605b4964b2
