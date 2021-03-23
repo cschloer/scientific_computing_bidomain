@@ -109,14 +109,18 @@ end
 # Create discretization grid in 1D or 2D with approximately n nodes
 function create_grid(n,dim)
 	nx=n
+	y_coords = 5
 	if dim==2
-		nx=ceil(sqrt(n))
+		#nx=ceil(sqrt(n))
+		nx=ceil(n / y_coords)
 	end
 	X=collect(0:spatial_domain/nx:spatial_domain)
 	if dim==1
       grid=simplexgrid(X)
 	else
-      grid=simplexgrid(X,X)
+	  Y=collect(0:1.0:y_coords)
+
+      grid=simplexgrid(X,Y)
 	end
 	return grid,X
 end
