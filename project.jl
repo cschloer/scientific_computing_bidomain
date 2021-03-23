@@ -74,7 +74,7 @@ We define evolution and create_grid similar to the lecture, though the grid now 
 
 
 # ╔═╡ 95a667de-880d-11eb-0171-b93ed1f38ea1
-spatial_domain = 70.0
+spatial_domain = 20.0
 
 # ╔═╡ 633b3d12-76a4-11eb-0bc7-b9bf9116933f
 # Function describing evolution of system with initial value inival 
@@ -207,7 +207,7 @@ Now, we create the bidomain function with flux and reaction.
 
 
 # ╔═╡ fa52bcd0-76f8-11eb-0d58-955a514a00b1
-function bidomain(;n=100,dim=1,sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5, beta=1, tstep=0.01, tend=50,dtgrowth=1.001)
+function bidomain(;n=100,dim=1,sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5, beta=1, tstep=0.01, tend=50,dtgrowth=1.005)
 	
 	grid, L =create_grid(n,dim)
 	
@@ -246,15 +246,6 @@ function bidomain(;n=100,dim=1,sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5,
 	enable_species!(bidomain_system,3,[1])
 
 	west = dim_space(grid)==1  ? 1 : 4
-	east = 2
-
-	# Boundaries for u
-	boundary_neumann!(bidomain_system, 1, west, 0)
-	boundary_neumann!(bidomain_system, 1, east, 0)
-
-	# Boundaries for u_e
-	boundary_neumann!(bidomain_system, 2, west, 0)
-	boundary_neumann!(bidomain_system, 2, east, 0)
 
 	# Dirichlet to set u_e = 0 at index 0
 	boundary_dirichlet!(bidomain_system, 2, west, 0)
@@ -273,11 +264,44 @@ function bidomain(;n=100,dim=1,sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5,
  	res = nlsolve(f!, [0.0; 0.0])
 	u_init = res.zero[1]
 	v_init = res.zero[2]
+	
+	if dim==2
+	
+		lex_ordering = Float64[]
+		for i=1:length(L)
+			for j=1:length(L)
+				if (L[i]<spatial_domain / 20) && (L[j]<spatial_domain / 20)
+					append!(lex_ordering,(L[i] ,L[j]))	
+				else
+					append!(lex_ordering,(-1,-1))
+				end
+			end
+		end
+
+		lex_ordering1 = reshape(lex_ordering,(2,num_nodes(grid)))'
+	
+	
 		for i=1:num_nodes(grid)
-		#for i=1:length(L)
+		# We set the initial value to 2 if within the first 1/20th of the grid, as 	specified by the paper
+
+			if max(lex_ordering1[i,1],lex_ordering1[i,2])!=-1 #L[(i - 1) % length(L) + 1]< spatial_domain / 20
+				inival[1,i]= 2
+			else
+				inival[1,i]= u_init
+			end
+
+
+			inival[2,i]= 0
+			inival[3,i]= v_init
+
+		end
+		
+	# In the 1d case
+	else
+		for i=1:num_nodes(grid)
 	# We set the initial value to 2 if within the first 1/20th of the grid, as specified by the paper
 
-			if L[(i - 1) % length(L) + 1] < spatial_domain / 20
+			if L[i]< spatial_domain / 20
 				inival[1,i]= 2
 			else
 				inival[1,i]= u_init
@@ -287,8 +311,9 @@ function bidomain(;n=100,dim=1,sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5,
 
 			inival[2,i]= 0
 			inival[3,i]= v_init
-
 		end
+	end
+	
 
 
 	evolution(inival,bidomain_system,grid,tstep,tend,dtgrowth)	
@@ -329,7 +354,7 @@ md"""
 gridplot(create_grid(10, 2)[1],resolution=(600,200),Plotter=PyPlot,legend_location=(1.5,0))
 
 # ╔═╡ 435e9954-8b16-11eb-06fa-f70df37efee9
-result_bidomain_2dgrid=bidomain(n=100,dim=2);
+result_bidomain_2dgrid=bidomain(n=1000,dim=2);
 
 # ╔═╡ 5125d26e-8b16-11eb-2da0-235368e7840c
 md"""
@@ -341,17 +366,23 @@ let
 	bivis=GridVisualizer(layout=(1,3),resolution=(600,300),Plotter=PyPlot)
 	scalarplot!(bivis[1,1],result_bidomain_2dgrid.grid,
 	       result_bidomain_2dgrid.solutions[t_bidomain_2dgrid][1,:],
-		   title="u: t=$(round(result_bidomain_2dgrid.times[t_bidomain_2dgrid], digits=6))",
+		   title="u: t=$(round(result_bidomain_2dgrid.times[t_bidomain_2dgrid], digits=4))",
 	       flimits=(-2,2),colormap=:cool,levels=50,clear=true)
 	scalarplot!(bivis[1,2],result_bidomain_2dgrid.grid,
 	       result_bidomain_2dgrid.solutions[t_bidomain_2dgrid][2,:],
-		   title="u_e: t=$(round(result_bidomain_2dgrid.times[t_bidomain_2dgrid], digits=6))",
+		   title="u_e: t=$(round(result_bidomain_2dgrid.times[t_bidomain_2dgrid], digits=4))",
 	       flimits=(-2,2),colormap=:cool,levels=50,show=true)
 	scalarplot!(bivis[1,3],result_bidomain_2dgrid.grid,
 	       result_bidomain_2dgrid.solutions[t_bidomain][3,:],
-		   title="v: t=$(round(result_bidomain_2dgrid.times[t_bidomain_2dgrid], digits=6))",
+		   title="v: t=$(round(result_bidomain_2dgrid.times[t_bidomain_2dgrid], digits=4))",
 	       flimits=(-2,2),colormap=:cool,levels=50,show=true)
 end
+
+# ╔═╡ 77e8e9ce-8bd0-11eb-0d60-cf66bd337f0c
+md"""
+Can change flimits $= (-2,2)$ to flimits $= (2,-2)$ for species u and u_e to see differently 
+(but time != 0)
+"""
 
 # ╔═╡ 3ab28264-6c64-11eb-29f4-a9ed2e9eba16
 TableOfContents()
@@ -368,7 +399,7 @@ end
 # ╟─90328ff6-8643-11eb-0f55-314c878ba3ec
 # ╠═95a667de-880d-11eb-0171-b93ed1f38ea1
 # ╟─633b3d12-76a4-11eb-0bc7-b9bf9116933f
-# ╠═4b9f5030-76cc-11eb-117c-91ca8336c30b
+# ╟─4b9f5030-76cc-11eb-117c-91ca8336c30b
 # ╠═023173fe-8644-11eb-3303-e351dbf44aaf
 # ╟─7278ba0a-8b00-11eb-3629-e55ab965940c
 # ╟─3402cd3c-8afc-11eb-2af1-312ae538cd1a
@@ -377,16 +408,17 @@ end
 # ╠═50bc7ea0-8afc-11eb-1101-d7a7373ed0ce
 # ╠═5f7bbdc0-8afc-11eb-1b38-e3448733ad4b
 # ╟─81f270e2-8afc-11eb-24be-5952f95e6aa3
-# ╠═cbb19904-8afc-11eb-19a5-47ad0bae2bfd
+# ╟─cbb19904-8afc-11eb-19a5-47ad0bae2bfd
 # ╟─b1a3c0a6-8643-11eb-1a7b-cd4720e77617
 # ╠═fa52bcd0-76f8-11eb-0d58-955a514a00b1
 # ╠═4e66a016-76f9-11eb-2023-6dfc3374c066
-# ╠═106d3bc0-76fa-11eb-1ee6-3fa73be52226
+# ╟─106d3bc0-76fa-11eb-1ee6-3fa73be52226
 # ╟─e2cbc0ec-76f9-11eb-2870-f10f6cdc8be4
-# ╠═9449905c-8b15-11eb-0987-471b19ff966b
+# ╟─9449905c-8b15-11eb-0987-471b19ff966b
 # ╟─a186f7f2-8b15-11eb-195d-5fe71ec9fd1e
 # ╠═435e9954-8b16-11eb-06fa-f70df37efee9
 # ╟─5125d26e-8b16-11eb-2da0-235368e7840c
 # ╠═6e46e702-8b16-11eb-2edf-e12f7c97594d
+# ╟─77e8e9ce-8bd0-11eb-0d60-cf66bd337f0c
 # ╟─3ab28264-6c64-11eb-29f4-a9ed2e9eba16
 # ╟─d32173ec-66e8-11eb-11ad-f9605b4964b2
