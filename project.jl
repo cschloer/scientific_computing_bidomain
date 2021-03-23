@@ -436,37 +436,11 @@ function bidomain_2d(;n=100,sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5, be
  	res = nlsolve(f!, [0.0; 0.0])
 	u_init = res.zero[1]
 	v_init = res.zero[2]
-	#=
-	lex_ordering_for_u = Float64[]
-	for i=1:length(L)
-		for j=1:length(L)
-			if (L[i]<spatial_domain_2d / 20) && (L[j]<spatial_domain_2d / 20)
-				append!(lex_ordering,(L[i] ,L[j]))	
-			else
-				append!(lex_ordering,(-1,-1))
-			end
-		end
-	end
-	
-	lex_ordering_for_v = Float64[]
-	for i=1:length(L)
-		for j=1:length(L)
-			if (L[i]<spatial_domain_2d / 20) && (L[j]<spatial_domain_2d / 20)
-				append!(lex_ordering,(L[i] ,L[j]))	
-			else
-				append!(lex_ordering,(-1,-1))
-			end
-		end
-	end
 
-	reshaped_lex_ordering_for_v = reshape(lex_ordering_for_v,(2,num_nodes(grid)))'
-	reshaped_lex_ordering_for_u = reshape(lex_ordering_for_u,(2,num_nodes(grid)))'
-
-	=#
 	for i=1:num_nodes(grid)
 	# We set the initial value to 2 if within the first 1/20th of the grid, as 	specified by the paper
 		x_coord = (i - 1) % length(L) + 1
-		y_coord = floor(i / length(L))
+		y_coord = convert(Int64, ceil(i / length(L)))
 		if L[x_coord] < spatial_domain_2d / 20
 			inival[1,i]= 2
 		else
@@ -475,8 +449,16 @@ function bidomain_2d(;n=100,sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5, be
 
 
 		inival[2,i]= 0
-		inival[3,i]= v_init
+		if (
+			(L[x_coord] > (31/70) * spatial_domain_2d && L[x_coord] < (39/70) * spatial_domain_2d) && 
+			(L[y_coord] < spatial_domain_2d / 2)
+		)
+			inival[3,i]= 2
 
+		else
+			
+			inival[3,i]= v_init
+		end
 	end
 
 
