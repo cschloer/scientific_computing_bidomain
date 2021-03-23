@@ -353,29 +353,41 @@ md"""
 # ╔═╡ a186f7f2-8b15-11eb-195d-5fe71ec9fd1e
 gridplot(create_grid(10, 2)[1],resolution=(600,200),Plotter=PyPlot,legend_location=(1.5,0))
 
-# ╔═╡ 435e9954-8b16-11eb-06fa-f70df37efee9
-result_bidomain_2dgrid=bidomain(n=1000,dim=2);
-
-# ╔═╡ 5125d26e-8b16-11eb-2da0-235368e7840c
+# ╔═╡ 46e7c83a-8bdd-11eb-211d-31a8a2b766c3
 md"""
-time=$(@bind t_bidomain_2dgrid Slider(1:length(result_bidomain_2dgrid.times),default=1))
+Plot Bidomain 2D ?
+$@bind do_2d_plot CheckBox(default=false))
 """
 
+# ╔═╡ 435e9954-8b16-11eb-06fa-f70df37efee9
+if do_2d_plot
+	result_bidomain_2dgrid=bidomain(n=1000,dim=2);
+end;
+
+# ╔═╡ 5125d26e-8b16-11eb-2da0-235368e7840c
+if do_2d_plot
+	md"""
+	time=$(@bind t_bidomain_2dgrid Slider(1:length(result_bidomain_2dgrid.times),default=1))
+	"""
+end
+
 # ╔═╡ 6e46e702-8b16-11eb-2edf-e12f7c97594d
-let
-	bivis=GridVisualizer(layout=(1,3),resolution=(600,300),Plotter=PyPlot)
-	scalarplot!(bivis[1,1],result_bidomain_2dgrid.grid,
-	       result_bidomain_2dgrid.solutions[t_bidomain_2dgrid][1,:],
-		   title="u: t=$(round(result_bidomain_2dgrid.times[t_bidomain_2dgrid], digits=4))",
-	       flimits=(-2,2),colormap=:cool,levels=50,clear=true)
-	scalarplot!(bivis[1,2],result_bidomain_2dgrid.grid,
-	       result_bidomain_2dgrid.solutions[t_bidomain_2dgrid][2,:],
-		   title="u_e: t=$(round(result_bidomain_2dgrid.times[t_bidomain_2dgrid], digits=4))",
-	       flimits=(-2,2),colormap=:cool,levels=50,show=true)
-	scalarplot!(bivis[1,3],result_bidomain_2dgrid.grid,
-	       result_bidomain_2dgrid.solutions[t_bidomain][3,:],
-		   title="v: t=$(round(result_bidomain_2dgrid.times[t_bidomain_2dgrid], digits=4))",
-	       flimits=(-2,2),colormap=:cool,levels=50,show=true)
+if do_2d_plot
+	let
+		bivis=GridVisualizer(layout=(1,3),resolution=(600,300),Plotter=PyPlot)
+		scalarplot!(bivis[1,1],result_bidomain_2dgrid.grid,
+			   result_bidomain_2dgrid.solutions[t_bidomain_2dgrid][1,:],
+			   title="u: t=$(round(result_bidomain_2dgrid.times[t_bidomain_2dgrid], digits=4))",
+			   flimits=(-2,2),colormap=:cool,levels=50,clear=true)
+		scalarplot!(bivis[1,2],result_bidomain_2dgrid.grid,
+			   result_bidomain_2dgrid.solutions[t_bidomain_2dgrid][2,:],
+			   title="u_e: t=$(round(result_bidomain_2dgrid.times[t_bidomain_2dgrid], digits=4))",
+			   flimits=(-2,2),colormap=:cool,levels=50,show=true)
+		scalarplot!(bivis[1,3],result_bidomain_2dgrid.grid,
+			   result_bidomain_2dgrid.solutions[t_bidomain][3,:],
+			   title="v: t=$(round(result_bidomain_2dgrid.times[t_bidomain_2dgrid], digits=4))",
+			   flimits=(-2,2),colormap=:cool,levels=50,show=true)
+	end
 end
 
 # ╔═╡ 77e8e9ce-8bd0-11eb-0d60-cf66bd337f0c
@@ -416,6 +428,7 @@ end
 # ╟─e2cbc0ec-76f9-11eb-2870-f10f6cdc8be4
 # ╟─9449905c-8b15-11eb-0987-471b19ff966b
 # ╟─a186f7f2-8b15-11eb-195d-5fe71ec9fd1e
+# ╟─46e7c83a-8bdd-11eb-211d-31a8a2b766c3
 # ╠═435e9954-8b16-11eb-06fa-f70df37efee9
 # ╟─5125d26e-8b16-11eb-2da0-235368e7840c
 # ╠═6e46e702-8b16-11eb-2edf-e12f7c97594d
