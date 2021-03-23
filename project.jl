@@ -107,27 +107,28 @@ end
 
 # ╔═╡ 4b9f5030-76cc-11eb-117c-91ca8336c30b
 # Create discretization grid in 1D or 2D with approximately n nodes
-function create_grid(n,dim)
+function create_grid(n,dim, spatial_domain)
 	nx=n
 	y_coords = 5
 	if dim==2
-		#nx=ceil(sqrt(n))
-		nx=ceil(n / y_coords)
+		nx=ceil(sqrt(n))
+		#nx=ceil(n / y_coords)
 	end
 	X=collect(0:spatial_domain/nx:spatial_domain)
 	if dim==1
       grid=simplexgrid(X)
 	else
-	  Y=collect(0:1.0:y_coords)
+	  #Y=collect(0:1.0:y_coords)
+      #grid=simplexgrid(X,Y)
 
-      grid=simplexgrid(X,Y)
+      grid=simplexgrid(X,X)
 	end
 	return grid,X
 end
 
 # ╔═╡ 023173fe-8644-11eb-3303-e351dbf44aaf
 # We show an example grid, for the 1 dimensional problem
-gridplot(create_grid(10, 1)[1],Plotter=PyPlot,resolution=(600,200))
+gridplot(create_grid(10, 1, spatial_domain)[1],Plotter=PyPlot,resolution=(600,200))
 
 # ╔═╡ 7278ba0a-8b00-11eb-3629-e55ab965940c
 
@@ -143,7 +144,7 @@ Grid in domain $\Omega=(0,70)$ consisting of N=$(@bind N Scrubbable(500:100:2000
 """
 
 # ╔═╡ 990dd67c-8afc-11eb-0f5d-f1525f921906
-grid1d_a = create_grid(N,1)[1]
+grid1d_a = create_grid(N,1, spatial_domain)[1]
 
 # ╔═╡ 50bc7ea0-8afc-11eb-1101-d7a7373ed0ce
 function bidomain_stationary(grid; sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5, beta=1)
@@ -213,7 +214,7 @@ Now, we create the bidomain function with flux and reaction.
 # ╔═╡ fa52bcd0-76f8-11eb-0d58-955a514a00b1
 function bidomain(;n=100,dim=1,sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5, beta=1, tstep=0.01, tend=50,dtgrowth=1.005)
 	
-	grid, L =create_grid(n,dim)
+	grid, L =create_grid(n,dim, spatial_domain)
 	
 	function storage!(f,u,node)
 		# Set all indices of f to values in u
@@ -268,56 +269,24 @@ function bidomain(;n=100,dim=1,sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5,
  	res = nlsolve(f!, [0.0; 0.0])
 	u_init = res.zero[1]
 	v_init = res.zero[2]
-	
-	if dim==2
-	
-		lex_ordering = Float64[]
-		for i=1:length(L)
-			for j=1:length(L)
-				if (L[i]<spatial_domain / 20) && (L[j]<spatial_domain / 20)
-					append!(lex_ordering,(L[i] ,L[j]))	
-				else
-					append!(lex_ordering,(-1,-1))
-				end
-			end
+
+
+	for i=1:num_nodes(grid)
+		x_coord = (i - 1) % length(L) + 1
+		y_coord = convert(Int64, ceil(i / length(L)))
+		if L[x_coord] < spatial_domain / 20 && (dim == 1 || L[y_coord] < spatial_domain / 20)
+		# We set the initial value to 2 if within the first 1/20th of the grid, as specified by the paper
+			inival[1,i]= 2
+		else
+			inival[1,i]= u_init
 		end
 
-		lex_ordering1 = reshape(lex_ordering,(2,num_nodes(grid)))'
-	
-	
-		for i=1:num_nodes(grid)
-		# We set the initial value to 2 if within the first 1/20th of the grid, as 	specified by the paper
-
-			if max(lex_ordering1[i,1],lex_ordering1[i,2])!=-1 #L[(i - 1) % length(L) + 1]< spatial_domain / 20
-				inival[1,i]= 2
-			else
-				inival[1,i]= u_init
-			end
 
 
-			inival[2,i]= 0
-			inival[3,i]= v_init
-
-		end
-		
-	# In the 1d case
-	else
-		for i=1:num_nodes(grid)
-	# We set the initial value to 2 if within the first 1/20th of the grid, as specified by the paper
-
-			if L[i]< spatial_domain / 20
-				inival[1,i]= 2
-			else
-				inival[1,i]= u_init
-			end
-
-
-
-			inival[2,i]= 0
-			inival[3,i]= v_init
-		end
+		inival[2,i]= 0
+		inival[3,i]= v_init
 	end
-	
+
 
 
 	evolution(inival,bidomain_system,grid,tstep,tend,dtgrowth)	
@@ -351,45 +320,45 @@ end
 
 # ╔═╡ 9449905c-8b15-11eb-0987-471b19ff966b
 md"""
-### 2.3 Solving the problem with a 2D grid
+### 2.3 Solving the 1D problem with a 2D grid
 """
 
 # ╔═╡ a186f7f2-8b15-11eb-195d-5fe71ec9fd1e
-gridplot(create_grid(10, 2)[1],resolution=(600,200),Plotter=PyPlot,legend_location=(1.5,0))
+gridplot(create_grid(10, 2, spatial_domain)[1],resolution=(600,200),Plotter=PyPlot,legend_location=(1.5,0))
 
 # ╔═╡ 46e7c83a-8bdd-11eb-211d-31a8a2b766c3
 md"""
-Plot Bidomain 2D ?
-$@bind do_2d_plot CheckBox(default=false))
+Plot Bidomain 1D in 2D ?
+$@bind do_1d_2d_plot CheckBox(default=false))
 """
 
 # ╔═╡ 435e9954-8b16-11eb-06fa-f70df37efee9
-if do_2d_plot
-	result_bidomain_2dgrid=bidomain(n=1000,dim=2);
+if do_1d_2d_plot
+	result_bidomain_1d_2dgrid=bidomain(n=1000,dim=2);
 end;
 
 # ╔═╡ 5125d26e-8b16-11eb-2da0-235368e7840c
-if do_2d_plot
+if do_1d_2d_plot
 	md"""
-	time=$(@bind t_bidomain_2dgrid Slider(1:length(result_bidomain_2dgrid.times),default=1))
+	time=$(@bind t_bidomain_1d_2dgrid Slider(1:length(result_bidomain_1d_2dgrid.times),default=1))
 	"""
 end
 
 # ╔═╡ 6e46e702-8b16-11eb-2edf-e12f7c97594d
-if do_2d_plot
+if do_1d_2d_plot
 	let
 		bivis=GridVisualizer(layout=(1,3),resolution=(600,300),Plotter=PyPlot)
-		scalarplot!(bivis[1,1],result_bidomain_2dgrid.grid,
-			   result_bidomain_2dgrid.solutions[t_bidomain_2dgrid][1,:],
-			   title="u: t=$(round(result_bidomain_2dgrid.times[t_bidomain_2dgrid], digits=4))",
+		scalarplot!(bivis[1,1],result_bidomain_1d_2dgrid.grid,
+			   result_bidomain_1d_2dgrid.solutions[t_bidomain_1d_2dgrid][1,:],
+			   title="u: t=$(round(result_bidomain_1d_2dgrid.times[t_bidomain_1d_2dgrid], digits=4))",
 			   flimits=(-2,2),colormap=:cool,levels=50,clear=true)
-		scalarplot!(bivis[1,2],result_bidomain_2dgrid.grid,
-			   result_bidomain_2dgrid.solutions[t_bidomain_2dgrid][2,:],
-			   title="u_e: t=$(round(result_bidomain_2dgrid.times[t_bidomain_2dgrid], digits=4))",
+		scalarplot!(bivis[1,2],result_bidomain_1d_2dgrid.grid,
+			   result_bidomain_1d_2dgrid.solutions[t_bidomain_1d_2dgrid][2,:],
+			   title="u_e: t=$(round(result_bidomain_1d_2dgrid.times[t_bidomain_1d_2dgrid], digits=4))",
 			   flimits=(-2,2),colormap=:cool,levels=50,show=true)
-		scalarplot!(bivis[1,3],result_bidomain_2dgrid.grid,
-			   result_bidomain_2dgrid.solutions[t_bidomain][3,:],
-			   title="v: t=$(round(result_bidomain_2dgrid.times[t_bidomain_2dgrid], digits=4))",
+		scalarplot!(bivis[1,3],result_bidomain_1d_2dgrid.grid,
+			   result_bidomain_1d_2dgrid.solutions[t_bidomain_1d_2dgrid][3,:],
+			   title="v: t=$(round(result_bidomain_1d_2dgrid.times[t_bidomain_1d_2dgrid], digits=4))",
 			   flimits=(-2,2),colormap=:cool,levels=50,show=true)
 	end
 end
@@ -399,6 +368,158 @@ md"""
 Can change flimits $= (-2,2)$ to flimits $= (2,-2)$ for species u and u_e to see differently 
 (but time != 0)
 """
+
+# ╔═╡ dd93b020-8be5-11eb-2fbc-1b3cf2435cf1
+md"""
+### 2.3 Solving the 2D problem
+"""
+
+
+# ╔═╡ 81403804-8be8-11eb-342b-7154670e4cdc
+spatial_domain_2d = 70.0
+
+# ╔═╡ 0d70b5ea-8be6-11eb-0ef0-c1bdfd1b3e2b
+function bidomain_2d(;n=100,sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5, beta=1, tstep=0.01, tend=50,dtgrowth=1.005)
+	
+	grid, L =create_grid(n,2, spatial_domain_2d)
+	
+	function storage!(f,u,node)
+		# Set all indices of f to values in u
+        f[1] = u[1]
+		f[2] = 0
+		f[3] = u[3]
+    end
+
+	
+	function bidomain_flux!(f,_u,edge)
+		u=unknowns(edge,_u)
+		# u
+		f[1] = sigma_i * (u[1,1] - u[1, 2]) + sigma_i * (u[2,1] - u[2,2])
+		# u_e
+		f[2] = sigma_i * (u[1,1] - u[1, 2]) + (sigma_i + sigma_e) * (u[2,1]-u[2,2])
+		# v
+
+	end
+	# Reaction:
+	function bidomain_reaction!(f,u,node)
+		f[1] = (-1 / epsilon) *  (u[1]  - (u[1] ^ 3) / 3 - u[3])
+		f[3] = - 1 * epsilon * (u[1]  + beta - gamma * u[3])
+	end
+
+
+	# Create system
+	bidomain_physics=VoronoiFVM.Physics(flux=bidomain_flux!,storage=storage!,
+									 num_species=3,reaction=bidomain_reaction!, 	
+		)
+	bidomain_system=VoronoiFVM.DenseSystem(grid,bidomain_physics)
+
+	enable_species!(bidomain_system,1,[1])
+	enable_species!(bidomain_system,2,[1])
+	enable_species!(bidomain_system,3,[1])
+
+	west = dim_space(grid)==1  ? 1 : 4
+
+	# Dirichlet to set u_e = 0 at index 0
+	boundary_dirichlet!(bidomain_system, 2, west, 0)
+	
+
+	inival=unknowns(bidomain_system)
+	
+	# We solve the equilibriam of the system, aka where f and g are 0
+	 function f!(F, v)
+		u = v[1]
+		v = v[2]
+		F[1] = u - (u^3)/3 - v
+		F[2] = u + beta - gamma * v
+	end
+ 
+ 	res = nlsolve(f!, [0.0; 0.0])
+	u_init = res.zero[1]
+	v_init = res.zero[2]
+	#=
+	lex_ordering_for_u = Float64[]
+	for i=1:length(L)
+		for j=1:length(L)
+			if (L[i]<spatial_domain_2d / 20) && (L[j]<spatial_domain_2d / 20)
+				append!(lex_ordering,(L[i] ,L[j]))	
+			else
+				append!(lex_ordering,(-1,-1))
+			end
+		end
+	end
+	
+	lex_ordering_for_v = Float64[]
+	for i=1:length(L)
+		for j=1:length(L)
+			if (L[i]<spatial_domain_2d / 20) && (L[j]<spatial_domain_2d / 20)
+				append!(lex_ordering,(L[i] ,L[j]))	
+			else
+				append!(lex_ordering,(-1,-1))
+			end
+		end
+	end
+
+	reshaped_lex_ordering_for_v = reshape(lex_ordering_for_v,(2,num_nodes(grid)))'
+	reshaped_lex_ordering_for_u = reshape(lex_ordering_for_u,(2,num_nodes(grid)))'
+
+	=#
+	for i=1:num_nodes(grid)
+	# We set the initial value to 2 if within the first 1/20th of the grid, as 	specified by the paper
+		x_coord = (i - 1) % length(L) + 1
+		y_coord = floor(i / length(L))
+		if L[x_coord] < spatial_domain_2d / 20
+			inival[1,i]= 2
+		else
+			inival[1,i]= u_init
+		end
+
+
+		inival[2,i]= 0
+		inival[3,i]= v_init
+
+	end
+
+
+	evolution(inival,bidomain_system,grid,tstep,tend,dtgrowth)	
+end
+
+# ╔═╡ 58da1062-8be6-11eb-03e0-07a7530ffb1e
+md"""
+Plot Bidomain 2D?
+$@bind do_2d_2d_plot CheckBox(default=false))
+"""
+
+# ╔═╡ 673001c6-8be6-11eb-1baa-21244e430130
+if do_2d_2d_plot
+	result_bidomain_2d_2dgrid=bidomain_2d(n=1000);
+end;
+
+# ╔═╡ c8df81d4-8be7-11eb-145c-019c6d361353
+if do_2d_2d_plot
+	md"""
+	time=$(@bind t_bidomain_2d_2dgrid Slider(1:length(result_bidomain_2d_2dgrid.times),default=1))
+	"""
+end
+
+# ╔═╡ d88fba68-8be7-11eb-1a2e-ef61606f0b6b
+if do_2d_2d_plot
+	let
+		bivis=GridVisualizer(layout=(1,3),resolution=(600,300),Plotter=PyPlot)
+		scalarplot!(bivis[1,1],result_bidomain_2d_2dgrid.grid,
+			   result_bidomain_2d_2dgrid.solutions[t_bidomain_2d_2dgrid][1,:],
+			   title="u: t=$(round(result_bidomain_2d_2dgrid.times[t_bidomain_2d_2dgrid], digits=4))",
+			   flimits=(-2,2),colormap=:cool,levels=50,clear=true)
+		scalarplot!(bivis[1,2],result_bidomain_2d_2dgrid.grid,
+			   result_bidomain_2d_2dgrid.solutions[t_bidomain_2d_2dgrid][2,:],
+			   title="u_e: t=$(round(result_bidomain_2d_2dgrid.times[t_bidomain_2d_2dgrid], digits=4))",
+			   flimits=(-2,2),colormap=:cool,levels=50,show=true)
+		scalarplot!(bivis[1,3],result_bidomain_2d_2dgrid.grid,
+			   result_bidomain_2d_2dgrid.solutions[t_bidomain_2d_2dgrid][3,:],
+			   title="v: t=$(round(result_bidomain_2d_2dgrid.times[t_bidomain_2d_2dgrid], digits=4))",
+			   flimits=(-2,2),colormap=:cool,levels=50,show=true)
+	end
+end
+
 
 # ╔═╡ 3ab28264-6c64-11eb-29f4-a9ed2e9eba16
 TableOfContents()
@@ -415,8 +536,8 @@ end
 # ╟─90328ff6-8643-11eb-0f55-314c878ba3ec
 # ╠═95a667de-880d-11eb-0171-b93ed1f38ea1
 # ╟─633b3d12-76a4-11eb-0bc7-b9bf9116933f
-# ╟─4b9f5030-76cc-11eb-117c-91ca8336c30b
-# ╠═023173fe-8644-11eb-3303-e351dbf44aaf
+# ╠═4b9f5030-76cc-11eb-117c-91ca8336c30b
+# ╟─023173fe-8644-11eb-3303-e351dbf44aaf
 # ╟─7278ba0a-8b00-11eb-3629-e55ab965940c
 # ╟─3402cd3c-8afc-11eb-2af1-312ae538cd1a
 # ╟─82ed33a0-8b00-11eb-11d0-cddce2e38e2c
@@ -430,12 +551,19 @@ end
 # ╠═4e66a016-76f9-11eb-2023-6dfc3374c066
 # ╟─106d3bc0-76fa-11eb-1ee6-3fa73be52226
 # ╟─e2cbc0ec-76f9-11eb-2870-f10f6cdc8be4
-# ╟─9449905c-8b15-11eb-0987-471b19ff966b
-# ╟─a186f7f2-8b15-11eb-195d-5fe71ec9fd1e
-# ╟─46e7c83a-8bdd-11eb-211d-31a8a2b766c3
+# ╠═9449905c-8b15-11eb-0987-471b19ff966b
+# ╠═a186f7f2-8b15-11eb-195d-5fe71ec9fd1e
+# ╠═46e7c83a-8bdd-11eb-211d-31a8a2b766c3
 # ╠═435e9954-8b16-11eb-06fa-f70df37efee9
 # ╟─5125d26e-8b16-11eb-2da0-235368e7840c
-# ╠═6e46e702-8b16-11eb-2edf-e12f7c97594d
+# ╟─6e46e702-8b16-11eb-2edf-e12f7c97594d
 # ╟─77e8e9ce-8bd0-11eb-0d60-cf66bd337f0c
-# ╟─3ab28264-6c64-11eb-29f4-a9ed2e9eba16
+# ╠═dd93b020-8be5-11eb-2fbc-1b3cf2435cf1
+# ╠═81403804-8be8-11eb-342b-7154670e4cdc
+# ╠═0d70b5ea-8be6-11eb-0ef0-c1bdfd1b3e2b
+# ╟─58da1062-8be6-11eb-03e0-07a7530ffb1e
+# ╠═673001c6-8be6-11eb-1baa-21244e430130
+# ╠═c8df81d4-8be7-11eb-145c-019c6d361353
+# ╠═d88fba68-8be7-11eb-1a2e-ef61606f0b6b
+# ╠═3ab28264-6c64-11eb-29f4-a9ed2e9eba16
 # ╟─d32173ec-66e8-11eb-11ad-f9605b4964b2
