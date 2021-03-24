@@ -73,7 +73,7 @@ We define evolution and create_grid similar to the lecture, though the grid now 
 """
 
 
-# ╔═╡ 95a667de-880d-11eb-0171-b93ed1f38ea1
+# ╔═╡ 863d120e-8c98-11eb-1ebc-1bce38a8cbae
 spatial_domain = 20.0
 
 # ╔═╡ 633b3d12-76a4-11eb-0bc7-b9bf9116933f
@@ -135,7 +135,7 @@ gridplot(create_grid(10, 1, spatial_domain)[1],Plotter=PyPlot,resolution=(600,20
 
 # ╔═╡ 3402cd3c-8afc-11eb-2af1-312ae538cd1a
 md"""
-### 2.1 Solve the stationary problem
+### 2.1 Solve the 1D stationary problem
 """
 
 # ╔═╡ 82ed33a0-8b00-11eb-11d0-cddce2e38e2c
@@ -172,9 +172,11 @@ function bidomain_stationary(grid; sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=
 	enable_species!(bidomain_system,1,[1])
 	enable_species!(bidomain_system,2,[1])
 	enable_species!(bidomain_system,3,[1])
+	
+	west = dim_space(grid)==1  ? 1 : 4
 
 	# Dirichlet to set u_e = 0 at index 0
-	boundary_dirichlet!(bidomain_system, 2, 1, 0)
+	boundary_dirichlet!(bidomain_system, 2, west, 0)
 
 	solve(unknowns(bidomain_system,inival=0),bidomain_system)
 end
@@ -199,9 +201,32 @@ let
 	       flimits=(-2,2),colormap=:cool,levels=50,show=true)
 end
 
+# ╔═╡ 63232a66-8c97-11eb-31cc-bd51ffa7b036
+grid2d_a = create_grid(N,2, spatial_domain)[1]
+
+# ╔═╡ 621837fe-8c97-11eb-3369-d13d98393496
+result_bidomain_stationary1d_2dgrid = bidomain_stationary(grid2d_a);
+
+# ╔═╡ a20680ae-8ca1-11eb-2e92-a9ef3ff0eebf
+let
+	bivis=GridVisualizer(layout=(1,3),resolution=(600,300),Plotter=PyPlot)
+	scalarplot!(bivis[1,1],grid2d_a,
+	       result_bidomain_stationary1d_2dgrid[1,:],
+		   title="u",
+	       flimits=(-2,2),colormap=:cool,levels=50,clear=true)
+	scalarplot!(bivis[1,2],grid2d_a,
+	       result_bidomain_stationary1d_2dgrid[2,:],
+		   title="u_e",
+	       flimits=(-2,2),colormap=:cool,levels=50,show=true)
+	scalarplot!(bivis[1,3],grid2d_a,
+	       result_bidomain_stationary1d_2dgrid[3,:],
+		   title="v",
+	       flimits=(-2,2),colormap=:cool,levels=50,show=true)
+end
+
 # ╔═╡ cbb19904-8afc-11eb-19a5-47ad0bae2bfd
 md"""
-### 2.2 Solve the unstationary problem
+### 2.2 Solve the 1D unstationary problem
 """
 
 # ╔═╡ b1a3c0a6-8643-11eb-1a7b-cd4720e77617
@@ -212,9 +237,9 @@ Now, we create the bidomain function with flux and reaction.
 
 
 # ╔═╡ fa52bcd0-76f8-11eb-0d58-955a514a00b1
-function bidomain(;n=100,dim=1,sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5, beta=1, tstep=0.01, tend=50,dtgrowth=1.005)
+function bidomain(;n=100, sd=spatial_domain,dim=1,sigma_i=1.0, sigma_e=1.0, epsilon=0.1, gamma=0.5, beta=1, tstep=0.01, tend=50,dtgrowth=1.005)
 	
-	grid, L =create_grid(n,dim, spatial_domain)
+	grid, L =create_grid(n,dim, sd)
 	
 	function storage!(f,u,node)
 		# Set all indices of f to values in u
@@ -298,7 +323,7 @@ result_bidomain=bidomain(n=100,dim=1);
 
 # ╔═╡ 106d3bc0-76fa-11eb-1ee6-3fa73be52226
 md"""
-time=$(@bind t_bidomain Slider(1:length(result_bidomain.times),default=1))
+time=$(@bind t_bidomain Slider(1:length(result_bidomain.times),default=300))
 """
 
 # ╔═╡ e2cbc0ec-76f9-11eb-2870-f10f6cdc8be4
@@ -340,7 +365,7 @@ end;
 # ╔═╡ 5125d26e-8b16-11eb-2da0-235368e7840c
 if do_1d_2d_plot
 	md"""
-	time=$(@bind t_bidomain_1d_2dgrid Slider(1:length(result_bidomain_1d_2dgrid.times),default=1))
+	time=$(@bind t_bidomain_1d_2dgrid Slider(1:length(result_bidomain_1d_2dgrid.times),default=400))
 	"""
 end
 
@@ -365,13 +390,12 @@ end
 
 # ╔═╡ 77e8e9ce-8bd0-11eb-0d60-cf66bd337f0c
 md"""
-Can change flimits $= (-2,2)$ to flimits $= (2,-2)$ for species u and u_e to see differently 
-(but time != 0)
+Can change flimits $= (-2,2)$ to flimits $= (2,-2)$ for the species u, u_e, v (but time != 0)
 """
 
 # ╔═╡ dd93b020-8be5-11eb-2fbc-1b3cf2435cf1
 md"""
-### 2.3 Solving the 2D problem
+### 2.4 Solving the 2D problem
 """
 
 
@@ -516,36 +540,39 @@ end
 # ╟─48b1a0ac-76f3-11eb-05bd-cbcfae8e2f27
 # ╟─397c9290-76f5-11eb-1114-4bd31f7ecf9a
 # ╟─90328ff6-8643-11eb-0f55-314c878ba3ec
-# ╠═95a667de-880d-11eb-0171-b93ed1f38ea1
-# ╟─633b3d12-76a4-11eb-0bc7-b9bf9116933f
+# ╠═863d120e-8c98-11eb-1ebc-1bce38a8cbae
+# ╠═633b3d12-76a4-11eb-0bc7-b9bf9116933f
 # ╠═4b9f5030-76cc-11eb-117c-91ca8336c30b
-# ╟─023173fe-8644-11eb-3303-e351dbf44aaf
+# ╠═023173fe-8644-11eb-3303-e351dbf44aaf
 # ╟─7278ba0a-8b00-11eb-3629-e55ab965940c
 # ╟─3402cd3c-8afc-11eb-2af1-312ae538cd1a
 # ╟─82ed33a0-8b00-11eb-11d0-cddce2e38e2c
-# ╟─990dd67c-8afc-11eb-0f5d-f1525f921906
+# ╠═990dd67c-8afc-11eb-0f5d-f1525f921906
 # ╠═50bc7ea0-8afc-11eb-1101-d7a7373ed0ce
 # ╠═5f7bbdc0-8afc-11eb-1b38-e3448733ad4b
 # ╟─81f270e2-8afc-11eb-24be-5952f95e6aa3
+# ╟─63232a66-8c97-11eb-31cc-bd51ffa7b036
+# ╠═621837fe-8c97-11eb-3369-d13d98393496
+# ╟─a20680ae-8ca1-11eb-2e92-a9ef3ff0eebf
 # ╟─cbb19904-8afc-11eb-19a5-47ad0bae2bfd
 # ╟─b1a3c0a6-8643-11eb-1a7b-cd4720e77617
 # ╠═fa52bcd0-76f8-11eb-0d58-955a514a00b1
 # ╠═4e66a016-76f9-11eb-2023-6dfc3374c066
 # ╟─106d3bc0-76fa-11eb-1ee6-3fa73be52226
 # ╟─e2cbc0ec-76f9-11eb-2870-f10f6cdc8be4
-# ╠═9449905c-8b15-11eb-0987-471b19ff966b
+# ╟─9449905c-8b15-11eb-0987-471b19ff966b
 # ╠═a186f7f2-8b15-11eb-195d-5fe71ec9fd1e
-# ╠═46e7c83a-8bdd-11eb-211d-31a8a2b766c3
+# ╟─46e7c83a-8bdd-11eb-211d-31a8a2b766c3
 # ╠═435e9954-8b16-11eb-06fa-f70df37efee9
 # ╟─5125d26e-8b16-11eb-2da0-235368e7840c
 # ╟─6e46e702-8b16-11eb-2edf-e12f7c97594d
 # ╟─77e8e9ce-8bd0-11eb-0d60-cf66bd337f0c
-# ╠═dd93b020-8be5-11eb-2fbc-1b3cf2435cf1
+# ╟─dd93b020-8be5-11eb-2fbc-1b3cf2435cf1
 # ╠═81403804-8be8-11eb-342b-7154670e4cdc
 # ╠═0d70b5ea-8be6-11eb-0ef0-c1bdfd1b3e2b
 # ╟─58da1062-8be6-11eb-03e0-07a7530ffb1e
 # ╠═673001c6-8be6-11eb-1baa-21244e430130
-# ╠═c8df81d4-8be7-11eb-145c-019c6d361353
+# ╟─c8df81d4-8be7-11eb-145c-019c6d361353
 # ╠═d88fba68-8be7-11eb-1a2e-ef61606f0b6b
-# ╠═3ab28264-6c64-11eb-29f4-a9ed2e9eba16
+# ╟─3ab28264-6c64-11eb-29f4-a9ed2e9eba16
 # ╟─d32173ec-66e8-11eb-11ad-f9605b4964b2
